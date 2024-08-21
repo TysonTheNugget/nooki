@@ -1,16 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import LandingPage from './pages/LandingPage';
 import RegisterPage from './pages/RegisterPage';
-import BattleArena from './components/BattleArena';  
-import connectDB from './db';  // Import the MongoDB connection
+import BattleArena from './components/NookiForest';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
-
-  useEffect(() => {
-    connectDB();  // Connect to MongoDB when the app starts
-  }, []);
 
   const handleLogin = () => {
     setIsLoggedIn(true);

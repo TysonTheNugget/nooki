@@ -1,5 +1,4 @@
-// src/components/BattleArena.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import OrdinookiCard from './OrdinookiCard';
 import { calculateDamage, determineTurnOrder } from '../utils/battleUtils';
@@ -22,17 +21,8 @@ const BattleArena = () => {
   const [isBeingAttacked1, setIsBeingAttacked1] = useState(false);
   const [isBeingAttacked2, setIsBeingAttacked2] = useState(false);
 
-  useEffect(() => {
-    if (battleInProgress) {
-      const interval = setInterval(() => {
-        handleBattle();
-      }, 3000); // Slowing down the battle to 3 seconds per turn
-
-      return () => clearInterval(interval);
-    }
-  }, [battleInProgress, health1, health2]);
-
-  const handleBattle = () => {
+  // Memoize the handleBattle function to avoid unnecessary re-renders
+  const handleBattle = useCallback(() => {
     if (health1 <= 0 || health2 <= 0) {
       setBattleInProgress(false);
       return;
@@ -87,7 +77,17 @@ const BattleArena = () => {
         }
       }, 1500); // Delay before the second Ordinooki attacks
     }
-  };
+  }, [health1, health2, player1, player2]);
+
+  useEffect(() => {
+    if (battleInProgress) {
+      const interval = setInterval(() => {
+        handleBattle();
+      }, 3000); // Slowing down the battle to 3 seconds per turn
+
+      return () => clearInterval(interval);
+    }
+  }, [battleInProgress, handleBattle]);
 
   const startBattle = () => {
     setBattleInProgress(true);

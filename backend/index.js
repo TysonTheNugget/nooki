@@ -1,5 +1,6 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const auth = require('./routes/auth');  // Import the auth routes
 
 const app = express();
 
@@ -18,6 +19,9 @@ const connectDB = async () => {
 };
 
 connectDB();
+
+// Define routes
+app.use('/api/auth', auth);
 
 app.get('/', (req, res) => {
   res.send('API is running...');

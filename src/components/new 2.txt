@@ -1,0 +1,88 @@
+background: determines added hp ( all nookis have base hp of 300 HP plus what ever increase they get from this)
+
+mint 150
+blue  85
+scarlet 110
+gray 105
+peach 125
+pastel pink 130
+bitmatrix 115
+btc orange 145
+altered 25
+
+
+
+Body: determines def
+pink btc jacket 8
+flannel 11
+priest 9
+red jersey 7
+yellow overshirt 11
+blue btc jacket	9
+winter jacket 7
+pink hoodie 11
+yellow jersey 12
+ronaldo 8 
+blue overshirt 9
+blue hoodie 11
+business suit 7
+black frog hoodie 6
+no clothes 9
+
+Body color: determines speed
+
+Sapphire  50
+charcoal 52
+lilac 45
+flame  63
+midnight 47
+coral  61
+crimson 69
+altered 5
+
+
+eyes: determines a special attack 
+
+green power up - inflicts double the damage every 4 turns
+heartshade - heals 10% of current hp every 3 turns
+lennons - reduces opponent defense by 20%
+dad shades - Unaffected by enemy effects 
+eyes - when hp reaches 0 gains 20% of hp
+cool shades - when attacked enemy loses 1 atk point 
+laser eyes - deals 15% of opponent max hp as damage on first turn 
+stunner shades - when attacked 3 times enemy is stunned for one turn
+3d glasses - every 4rd turn enemy missess attacks (unable to hit you)
+aviators - increases hp when attacking by 3
+future shades - increases atk and def by 5 on turn 4 (only your turn count)
+evil eyes - if enemy atk is higher gains 3 atk, if enemy atk is lower gains 1 atk
+purple power up - flip a coin if heads increases all stats by 10% if tails increase stats by 5%
+vr: decrease opponent atk by 3 at start of battle 
+fash shades - increase def by 5 at start of battle 
+bitcoin eyes - increases atk and def by 4 at start of battle 
+altered - nothing 
+
+Face: determines critical chance
+pipe  15%
+bubble gum  20%
+cigarrette  35%
+tongue out  22%
+btc pizza  45%
+thoink  38%
+none  43%
+altered 5%
+
+Head: determines atk 
+
+wizard cap 15
+goosy float 16
+unicorn horn 15
+red cap 16
+headband 17
+heating up 19
+beanie 16
+fedora 20
+head 23
+top hat 22
+purple beanie 19
+police 18
+altered 5

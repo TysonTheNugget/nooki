@@ -1,0 +1,78 @@
+.nooki-forest {
+  background-color: green;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  text-align: center;
+}
+
+.wallet-container {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background-color: rgba(0, 0, 0, 0.9);
+  padding: 20px;
+  border-radius: 10px;
+  border: 2px solid white;
+  color: white;
+  width: 300px;
+  height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+}
+
+.wallet-container .wallet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: move; /* Change cursor to indicate drag handle */
+}
+
+.wallet-container .wallet-header h2 {
+  margin: 0;
+}
+
+.wallet-container .wallet-header .close-btn {
+  background-color: transparent;
+  border: none;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.wallet-container.hidden {
+  display: none;
+}
+
+.wallet-container.visible {
+  display: block;
+}
+
+/* Centering content inside the wallet container */
+.wallet-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.copy-btn {
+  background-color: transparent;
+  border: none;
+  color: #61dafb;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: 10px;
+}
+
+.copy-btn:hover {
+  text-decoration: underline;
+}

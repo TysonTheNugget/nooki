@@ -1,16 +1,31 @@
 import React, { useState } from 'react';
-import './styles.css';  // Import the common styles
+import axios from 'axios';  // Import axios to make HTTP requests
 
 const RegisterPage = ({ onRegisterSubmit }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [twitterHandle, setTwitterHandle] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const newUser = { username, password, twitterHandle };
-    console.log('User registered:', newUser);
-    onRegisterSubmit();
+
+    const newUser = {
+      username,
+      password,
+      twitterHandle,
+    };
+
+    try {
+      // Make a POST request to the backend to register the user
+      const response = await axios.post('/api/auth/register', newUser);
+
+      if (response.status === 201) {
+        console.log('User registered successfully');
+        onRegisterSubmit();
+      }
+    } catch (err) {
+      console.error('Error registering user:', err.response?.data?.message || err.message);
+    }
   };
 
   return (

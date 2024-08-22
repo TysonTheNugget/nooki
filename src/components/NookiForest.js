@@ -7,27 +7,26 @@ const NookiForest = () => {
   const [account, setAccount] = useState(null);
   const [walletVisible, setWalletVisible] = useState(false);
   const [inscriptions, setInscriptions] = useState([]);
-  const [selectedNooki, setSelectedNooki] = useState(null);  // Track the selected Nooki
+  const [selectedNooki, setSelectedNooki] = useState(null);
   const walletContainerRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [initialPos, setInitialPos] = useState({ x: 0, y: 0 });
 
-  // Function to connect wallet (presumably with UniSat)
   const connectWallet = async () => {
     if (typeof window.unisat !== 'undefined') {
       try {
         const accounts = await window.unisat.requestAccounts();
         setAccount(accounts[0]);
         setWalletConnected(true);
-        setWalletVisible(true);  // Show the wallet popup
-        console.log('Connected to account:', accounts[0]);
+        setWalletVisible(true);
 
         // Load and filter inscriptions with pagination
         let loadedInscriptions = await loadAllInscriptions();
-        console.log('Loaded Inscriptions:', loadedInscriptions);
         let validInscriptions = filterValidInscriptions(loadedInscriptions);
-        console.log('Valid Inscriptions:', validInscriptions);
-        setInscriptions(validInscriptions);  // Update the state with valid inscriptions
+        setInscriptions(validInscriptions);
+
+        // Update the linked Ordinookis in the database
+        await updateLinkedOrdinookis(account, validInscriptions);
       } catch (error) {
         console.error('Error connecting to wallet:', error);
       }
@@ -36,11 +35,34 @@ const NookiForest = () => {
     }
   };
 
-  // Load all inscriptions (handles pagination)
+  // Function to update linked Ordinookis in the backend
+  const updateLinkedOrdinookis = async (userId, validOrdinookiIds) => {
+    try {
+      const response = await fetch('/api/update-ordinookis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,  // Use the user's account ID
+          ordinookiIds: validOrdinookiIds,
+        }),
+      });
+
+      if (response.ok) {
+        console.log('Ordinookis linked successfully');
+      } else {
+        console.error('Failed to link Ordinookis:', response.status);
+      }
+    } catch (error) {
+      console.error('Error updating linked Ordinookis:', error);
+    }
+  };
+
   const loadAllInscriptions = async () => {
     let allInscriptions = [];
     let page = 0;
-    const pageSize = 10; // Adjust this based on API limits
+    const pageSize = 10;
 
     try {
       while (true) {
@@ -57,15 +79,9 @@ const NookiForest = () => {
     }
   };
 
-  // Filter the valid inscriptions
   const filterValidInscriptions = (inscriptions) => {
-    console.log("Ordinooki IDs:", ordinookiData.map(nooki => nooki.id));
     return inscriptions.filter(id => {
-      const match = ordinookiData.some(nooki => nooki.id === id);
-      if (!match) {
-        console.log(`No match found for ID: ${id}`);
-      }
-      return match;
+      return ordinookiData.some(nooki => nooki.id === id);
     });
   };
 

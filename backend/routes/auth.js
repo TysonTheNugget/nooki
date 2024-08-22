@@ -98,4 +98,31 @@ router.post('/login', async (req, res) => {
   }
 });
 
+router.post('/update-ordinookis', async (req, res) => {
+  const { userId, ordinookiIds } = req.body;
+
+  try {
+    // Remove the Ordinooki IDs from other users
+    await User.updateMany(
+      { _id: { $ne: userId } }, // Find all users except the current one
+      { $pull: { linked_ordinookis: { $in: ordinookiIds } } } // Remove the Ordinooki IDs from their linked_ordinookis
+    );
+
+    // Find the current user and update their linked_ordinookis
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.linked_ordinookis = ordinookiIds; // Assign the Ordinookis to the current user
+    await user.save();
+
+    res.status(200).json({ message: 'Ordinookis linked successfully and removed from previous owners' });
+  } catch (error) {
+    console.error('Error linking Ordinookis:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
+

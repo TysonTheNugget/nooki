@@ -12,9 +12,7 @@ const NookiForest = () => {
   const [dragging, setDragging] = useState(false);
   const [initialPos, setInitialPos] = useState({ x: 0, y: 0 });
 
-  // Hard-coded JWT token for demonstration purposes
-  const JWT_TOKEN = 'your-jwt-token-here'; // Replace this with the actual JWT token
-
+  // Function to connect wallet (presumably with UniSat)
   const connectWallet = async () => {
     if (typeof window.unisat !== 'undefined') {
       try {
@@ -59,6 +57,7 @@ const NookiForest = () => {
     }
   };
 
+  // Filter the valid inscriptions
   const filterValidInscriptions = (inscriptions) => {
     console.log("Ordinooki IDs:", ordinookiData.map(nooki => nooki.id));
     return inscriptions.filter(id => {
@@ -75,16 +74,22 @@ const NookiForest = () => {
   };
 
   const handleDeployNooki = async () => {
+    const token = localStorage.getItem('token'); // Retrieve the token from localStorage
+
+    if (!token) {
+      console.error('No token found. Please log in.');
+      return;
+    }
+
     if (selectedNooki) {
       const confirmDeploy = window.confirm("Are you sure you want to deploy this Ordinooki?");
       if (confirmDeploy) {
         try {
-          // Call the backend API to save the deployed Ordinooki
           const response = await fetch('/api/deploy-nooki', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${JWT_TOKEN}` // Add this line for authentication
+              'Authorization': `Bearer ${token}` // Use the token stored in localStorage
             },
             body: JSON.stringify({ 
               inscriptionId: selectedNooki,
@@ -96,7 +101,9 @@ const NookiForest = () => {
             console.log('Ordinooki deployed successfully');
             // Update the map with the deployed Ordinooki here
           } else {
-            console.error('Failed to deploy Ordinooki');
+            console.error('Failed to deploy Ordinooki', response.status);
+            const errorData = await response.json();
+            console.error('Error details:', errorData);
           }
         } catch (error) {
           console.error('Error deploying Ordinooki:', error);

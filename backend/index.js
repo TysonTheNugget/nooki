@@ -1,11 +1,15 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors');  // Import the cors middleware
 const auth = require('./routes/auth');  // Import the auth routes
 const User = require('./models/User');  // Import the User model
 const Ordinooki = require('./models/Ordinooki');  // Import the Ordinooki model
 const authMiddleware = require('./middleware/auth'); // Import the authentication middleware
 
 const app = express();
+
+// Use CORS to allow requests from your frontend
+app.use(cors({ origin: 'http://localhost:3000' }));
 
 // Middleware to parse JSON
 app.use(express.json());

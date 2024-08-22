@@ -2,6 +2,8 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');  // Import the User model
+const authMiddleware = require('../middleware/auth');  // Import the authMiddleware
+
 const router = express.Router();
 
 // Hard-coded JWT secret key
@@ -98,26 +100,34 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.post('/update-ordinookis', async (req, res) => {
-  const { userId, ordinookiIds } = req.body;
+// @route   POST /api/auth/update-ordinookis
+// @desc    Update the user's linked ordinookis
+// @access  Private (requires authMiddleware)
+router.post('/update-ordinookis', authMiddleware, async (req, res) => {
+  const { ordinookiIds } = req.body;
+  const userId = req.user.id;
+
+  console.log(`Received request body:`, req.body);
+  console.log(`User ID from JWT: ${userId}`);
 
   try {
-    // Remove the Ordinooki IDs from other users
-    await User.updateMany(
-      { _id: { $ne: userId } }, // Find all users except the current one
-      { $pull: { linked_ordinookis: { $in: ordinookiIds } } } // Remove the Ordinooki IDs from their linked_ordinookis
-    );
-
-    // Find the current user and update their linked_ordinookis
+    // Find the current user
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    user.linked_ordinookis = ordinookiIds; // Assign the Ordinookis to the current user
+    // Remove the Ordinooki IDs from all other users
+    await User.updateMany(
+      { _id: { $ne: userId } }, // Find all users except the current one
+      { $pull: { linked_ordinookis: { $in: ordinookiIds } } } // Remove the Ordinooki IDs from their linked_ordinookis
+    );
+
+    // Assign the Ordinookis to the current user
+    user.linked_ordinookis = ordinookiIds;
     await user.save();
 
-    res.status(200).json({ message: 'Ordinookis linked successfully and removed from previous owners' });
+    res.status(200).json({ message: 'Ordinookis linked successfully' });
   } catch (error) {
     console.error('Error linking Ordinookis:', error);
     res.status(500).json({ message: 'Server error' });
@@ -125,4 +135,3 @@ router.post('/update-ordinookis', async (req, res) => {
 });
 
 module.exports = router;
-

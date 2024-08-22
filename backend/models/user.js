@@ -33,6 +33,7 @@ const UserSchema = new mongoose.Schema({
   twitterHandle: {
     type: String,
   },
+  linked_ordinookis: [String],  // Add this field to store linked Ordinooki IDs
   deployedOrdinooki: OrdinookiSchema, // Embedded Ordinooki schema to store deployed Ordinooki
 });
 

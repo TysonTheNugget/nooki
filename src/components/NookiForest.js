@@ -12,52 +12,69 @@ const NookiForest = () => {
   const [dragging, setDragging] = useState(false);
   const [initialPos, setInitialPos] = useState({ x: 0, y: 0 });
 
-  const connectWallet = async () => {
-    if (typeof window.unisat !== 'undefined') {
-      try {
-        const accounts = await window.unisat.requestAccounts();
-        setAccount(accounts[0]);
-        setWalletConnected(true);
-        setWalletVisible(true);
-
-        // Load and filter inscriptions with pagination
-        let loadedInscriptions = await loadAllInscriptions();
-        let validInscriptions = filterValidInscriptions(loadedInscriptions);
-        setInscriptions(validInscriptions);
-
-        // Update the linked Ordinookis in the database
-        await updateLinkedOrdinookis(account, validInscriptions);
-      } catch (error) {
-        console.error('Error connecting to wallet:', error);
-      }
-    } else {
-      alert('Please install the UniSat Wallet extension!');
-    }
-  };
-
-  // Function to update linked Ordinookis in the backend
-  const updateLinkedOrdinookis = async (userId, validOrdinookiIds) => {
+const connectWallet = async () => {
+  if (typeof window.unisat !== 'undefined') {
     try {
-      const response = await fetch('/api/auth/update-ordinookis', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: userId,  // Use the user's account ID
-          ordinookiIds: validOrdinookiIds,
-        }),
-      });
+      const accounts = await window.unisat.requestAccounts();
+      setAccount(accounts[0]);
+      setWalletConnected(true);
+      setWalletVisible(true);
+      console.log("Wallet connected successfully:", accounts[0]);
 
-      if (response.ok) {
-        console.log('Ordinookis linked successfully');
-      } else {
-        console.error('Failed to link Ordinookis:', response.status);
-      }
+      // Separate loading of inscriptions
+      loadAndFilterInscriptions(accounts[0]);
     } catch (error) {
-      console.error('Error updating linked Ordinookis:', error);
+      console.error('Error connecting to wallet:', error);
     }
-  };
+  } else {
+    alert('Please install the UniSat Wallet extension!');
+  }
+};
+
+// Function to load and filter inscriptions
+const loadAndFilterInscriptions = async (userAccount) => {
+  try {
+    let loadedInscriptions = await loadAllInscriptions();
+    let validInscriptions = filterValidInscriptions(loadedInscriptions);
+    setInscriptions(validInscriptions);
+
+    // Separately update the linked Ordinookis in the database
+    updateLinkedOrdinookis(validInscriptions);
+  } catch (error) {
+    console.error('Error loading and filtering inscriptions:', error);
+  }
+};
+
+// Function to update linked Ordinookis in the backend
+const updateLinkedOrdinookis = async (validOrdinookiIds) => {
+  const token = localStorage.getItem('token'); // Retrieve the token from localStorage
+
+  if (!token) {
+    console.error('No token found. Please log in.');
+    return;
+  }
+
+  try {
+    const response = await fetch('http://localhost:5000/api/auth/update-ordinookis', { // Explicitly target port 5000
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` // Set the Authorization header
+      },
+      body: JSON.stringify({
+        ordinookiIds: validOrdinookiIds,  // These are the valid inscriptions
+      }),
+    });
+
+    if (response.ok) {
+      console.log('Ordinookis linked successfully');
+    } else {
+      console.error('Failed to link Ordinookis:', response.status);
+    }
+  } catch (error) {
+    console.error('Error updating linked Ordinookis:', error);
+  }
+};
 
   const loadAllInscriptions = async () => {
     let allInscriptions = [];
@@ -101,7 +118,7 @@ const NookiForest = () => {
       const confirmDeploy = window.confirm("Are you sure you want to deploy this Ordinooki?");
       if (confirmDeploy) {
         try {
-          const response = await fetch('/api/deploy-nooki', {
+          const response = await fetch('http://localhost:5000/api/deploy-nooki', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

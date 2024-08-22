@@ -12,6 +12,9 @@ const NookiForest = () => {
   const [dragging, setDragging] = useState(false);
   const [initialPos, setInitialPos] = useState({ x: 0, y: 0 });
 
+  // Hard-coded JWT token for demonstration purposes
+  const JWT_TOKEN = 'your-jwt-token-here'; // Replace this with the actual JWT token
+
   const connectWallet = async () => {
     if (typeof window.unisat !== 'undefined') {
       try {
@@ -79,7 +82,10 @@ const NookiForest = () => {
           // Call the backend API to save the deployed Ordinooki
           const response = await fetch('/api/deploy-nooki', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${JWT_TOKEN}` // Add this line for authentication
+            },
             body: JSON.stringify({ 
               inscriptionId: selectedNooki,
               userId: account // Assuming account is the user's unique identifier

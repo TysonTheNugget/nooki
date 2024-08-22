@@ -7,11 +7,12 @@ const NookiForest = () => {
   const [account, setAccount] = useState(null);
   const [walletVisible, setWalletVisible] = useState(false);
   const [inscriptions, setInscriptions] = useState([]);
+  const [selectedNooki, setSelectedNooki] = useState(null);  // Track the selected Nooki
   const walletContainerRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [initialPos, setInitialPos] = useState({ x: 0, y: 0 });
 
-const connectWallet = async () => {
+  const connectWallet = async () => {
     if (typeof window.unisat !== 'undefined') {
       try {
         const accounts = await window.unisat.requestAccounts();
@@ -64,6 +65,38 @@ const connectWallet = async () => {
       }
       return match;
     });
+  };
+
+  const handleSelectNooki = (id) => {
+    setSelectedNooki(id);  // Set the selected Nooki
+  };
+
+  const handleDeployNooki = async () => {
+    if (selectedNooki) {
+      const confirmDeploy = window.confirm("Are you sure you want to deploy this Ordinooki?");
+      if (confirmDeploy) {
+        try {
+          // Call the backend API to save the deployed Ordinooki
+          const response = await fetch('/api/deploy-nooki', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ 
+              inscriptionId: selectedNooki,
+              userId: account // Assuming account is the user's unique identifier
+            })
+          });
+
+          if (response.ok) {
+            console.log('Ordinooki deployed successfully');
+            // Update the map with the deployed Ordinooki here
+          } else {
+            console.error('Failed to deploy Ordinooki');
+          }
+        } catch (error) {
+          console.error('Error deploying Ordinooki:', error);
+        }
+      }
+    }
   };
 
   const toggleWalletVisibility = () => {
@@ -147,11 +180,17 @@ const connectWallet = async () => {
                       src={`https://ordinals.com/content/${id}`}
                       alt="Nooki"
                       style={{ width: '50px', height: '50px', margin: '5px', cursor: 'pointer' }}
-                      onClick={() => alert(`Selected Nooki with ID: ${id}`)}
+                      onClick={() => handleSelectNooki(id)}  // Select Nooki on click
                     />
                   ))
                 )}
               </div>
+              {selectedNooki && (
+                <div>
+                  <p>Selected Nooki ID: {selectedNooki}</p>
+                  <button onClick={handleDeployNooki}>Deploy</button>  {/* Confirm deployment */}
+                </div>
+              )}
             </div>
           </div>
         </>

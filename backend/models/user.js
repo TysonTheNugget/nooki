@@ -1,6 +1,24 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+// Define the Ordinooki schema (embedded within the User schema)
+const OrdinookiSchema = new mongoose.Schema({
+  inscriptionId: {
+    type: String,
+    required: true,
+  },
+  name: {
+    type: String,
+  },
+  stats: {
+    HP: Number,
+    Attack: Number,
+    Defense: Number,
+    Speed: Number,
+    // Add any other stats as necessary
+  },
+});
+
 // Define the User schema
 const UserSchema = new mongoose.Schema({
   username: {
@@ -15,6 +33,7 @@ const UserSchema = new mongoose.Schema({
   twitterHandle: {
     type: String,
   },
+  deployedOrdinooki: OrdinookiSchema, // Embedded Ordinooki schema to store deployed Ordinooki
 });
 
 // Hash the password before saving the user

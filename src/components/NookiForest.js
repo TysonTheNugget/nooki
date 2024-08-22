@@ -38,7 +38,7 @@ const NookiForest = () => {
   // Function to update linked Ordinookis in the backend
   const updateLinkedOrdinookis = async (userId, validOrdinookiIds) => {
     try {
-      const response = await fetch('/api/update-ordinookis', {
+      const response = await fetch('/api/auth/update-ordinookis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

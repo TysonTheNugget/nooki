@@ -118,7 +118,7 @@ const updateLinkedOrdinookis = async (validOrdinookiIds) => {
       const confirmDeploy = window.confirm("Are you sure you want to deploy this Ordinooki?");
       if (confirmDeploy) {
         try {
-          const response = await fetch('http://localhost:5000/api/deploy-nooki', {
+          const response = await fetch('/api/deploy-nooki', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

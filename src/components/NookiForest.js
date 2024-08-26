@@ -11,9 +11,34 @@ const NookiForest = () => {
     const canvasRef = useRef(null);
 
     useEffect(() => {
+    const fetchDeployedOrdinookis = async () => {
+        try {
+            const response = await fetch('/api/deployed-nookis');
+            const data = await response.json();
+            setDeployedNookis(data);  // Load all deployed nookis
+        } catch (error) {
+            console.error('Error fetching deployed Ordinookis:', error);
+        }
+    };
+
+    fetchDeployedOrdinookis();
+}, []);
+
+useEffect(() => {
+    const socket = io('http://localhost:5000');
+
+    socket.on('nookiDeployed', (data) => {
+        setDeployedNookis((prev) => [...prev, data]);
+    });
+
+    return () => socket.disconnect();
+}, []);
+
+    // Handling character deployment
+    useEffect(() => {
         let characterController;
 
-        if (isDeployed) {  // Initialize character only if deployed
+        if (isDeployed) {
             const canvas = canvasRef.current;
             const ctx = canvas.getContext('2d');
 
@@ -26,10 +51,10 @@ const NookiForest = () => {
 
         return () => {
             if (characterController) {
-                // Cleanup if necessary
+                // Cleanup logic if necessary
             }
         };
-    }, [isDeployed]);  // Depend on the deployment state
+    }, [isDeployed]);
 
     const [walletConnected, setWalletConnected] = useState(false);
     const [account, setAccount] = useState(null);
@@ -213,6 +238,14 @@ const NookiForest = () => {
 
     return (
         <div className="nooki-forest">
+		    <div className="nooki-forest">
+        <canvas ref={canvasRef}></canvas>
+        {deployedNookis.map((nooki, index) => (
+            <div key={index} style={{ position: 'absolute', top: nooki.position.y, left: nooki.position.x }}>
+                {/* Render the nooki sprite here */}
+            </div>
+        ))}
+    </div>
             <h1>Welcome to Nooki Forest</h1>
             {!walletConnected ? (
                 <button onClick={connectWallet}>Connect UniSat Wallet</button>
@@ -253,13 +286,14 @@ const NookiForest = () => {
                                             onClick={() => handleSelectNooki(id)}
                                         />
                                     ))
+									
                                 )}
-                            </div>
+                            </div> 
                             {selectedNooki && (
                                 <div>
                                     <p>Selected Nooki ID: {selectedNooki}</p>
                                     <button onClick={handleDeployNooki}>Deploy</button>
-                                </div>
+                                </div> 
                             )}
                         </div>
                     </div>
@@ -267,6 +301,7 @@ const NookiForest = () => {
             )}
             <canvas ref={canvasRef}></canvas>
         </div>
+		
     );
 };
 

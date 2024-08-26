@@ -7,6 +7,7 @@ const auth = require('./routes/auth');  // Import the auth routes
 const User = require('./models/User');  // Import the User model
 const authMiddleware = require('./middleware/auth'); // Import the authentication middleware
 const ordinookiData = require('../ordinooki.json');  // Import the Ordinooki data from the JSON file
+const DeployedOrdinooki = require('./models/DeployedOrdinooki');
 
 const app = express();
 const server = http.createServer(app); // Create HTTP server
@@ -32,6 +33,16 @@ const connectDB = async () => {
   }
 };
 
+app.get('/api/deployed-nookis', async (req, res) => {
+    try {
+        const deployedNookis = await DeployedOrdinooki.find();
+        res.json(deployedNookis);
+    } catch (error) {
+        console.error('Error fetching deployed Ordinookis:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 connectDB();
 
 // Define routes
@@ -48,45 +59,33 @@ io.on('connection', (socket) => {
 
 // Deploy Ordinooki endpoint
 app.post('/api/deploy-nooki', authMiddleware, async (req, res) => {
-    const { inscriptionId } = req.body;
+    const { inscriptionId, position } = req.body;
     const userId = req.user.id;
-
-    console.log('Deploy Request:', { userId, inscriptionId }); 
 
     try {
         const user = await User.findById(userId);
-        console.log('User:', user);
-
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // Check if the user's linked_ordinookis contains the inscriptionId
-        const userHasOrdinooki = user.linked_ordinookis.includes(inscriptionId);
-        console.log('Ordinooki found in user:', userHasOrdinooki);
-
-        if (!userHasOrdinooki) {
-            return res.status(403).json({ message: 'You do not own this Ordinooki' });
-        }
-
-        // Retrieve the Ordinooki's metadata from the JSON file
         const ordinooki = ordinookiData.find(item => item.id === inscriptionId);
         if (!ordinooki) {
             return res.status(404).json({ message: 'Ordinooki not found in data' });
         }
 
-        // Save the deployment details in the user's profile, including all metadata
-        user.deployedOrdinooki = {
+        // Save the deployed Ordinooki to the database
+        const deployedOrdinooki = new DeployedOrdinooki({
+            userId: user._id,
             inscriptionId,
+            position,
             meta: ordinooki.meta
-        };
-        await user.save();
+        });
 
-        // Emit the event to all connected clients with the full Ordinooki's data
-        io.emit('nookiDeployed', { inscriptionId, meta: ordinooki.meta });
+        await deployedOrdinooki.save();
 
-        // Respond with success
-        res.status(200).json({ message: 'Ordinooki deployed successfully', inscriptionId, meta: ordinooki.meta });
+        io.emit('nookiDeployed', { inscriptionId, meta: ordinooki.meta, position });
+
+        res.status(200).json({ message: 'Ordinooki deployed successfully', inscriptionId, meta: ordinooki.meta, position });
 
     } catch (error) {
         console.error('Error deploying Ordinooki:', error);

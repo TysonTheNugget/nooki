@@ -6,31 +6,30 @@ import './NookiForest.css';
 import ordinookiData from '../ordinooki';  // Import the ordinooki data
 
 const NookiForest = () => {
+    const [isDeployed, setIsDeployed] = useState(false);  // Add state to track deployment
     const [deployedNookis, setDeployedNookis] = useState([]);
     const canvasRef = useRef(null);
 
     useEffect(() => {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
+        let characterController;
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        if (isDeployed) {  // Initialize character only if deployed
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
 
-        // Initialize character and start animation
-        const characterController = initializeCharacter(canvas, spriteSheet);
-        characterController.start(ctx);
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
 
-        // WebSocket connection to listen for deployed Nookis
-        const socket = io('http://localhost:5000');  // Adjust the URL to your server
+            characterController = initializeCharacter(canvas, spriteSheet);
+            characterController.start(ctx);
+        }
 
-        socket.on('nookiDeployed', (data) => {
-            console.log('Nooki deployed:', data);
-            setDeployedNookis((prev) => [...prev, data.inscriptionId]);
-            // You can update the canvas with the new deployed Nooki
-        });
-
-        return () => socket.disconnect();  // Clean up the WebSocket connection
-    }, []);
+        return () => {
+            if (characterController) {
+                // Cleanup if necessary
+            }
+        };
+    }, [isDeployed]);  // Depend on the deployment state
 
     const [walletConnected, setWalletConnected] = useState(false);
     const [account, setAccount] = useState(null);
@@ -50,7 +49,6 @@ const NookiForest = () => {
                 setWalletVisible(true);
                 console.log("Wallet connected successfully:", accounts[0]);
 
-                // Separate loading of inscriptions
                 loadAndFilterInscriptions(accounts[0]);
             } catch (error) {
                 console.error('Error connecting to wallet:', error);
@@ -60,23 +58,20 @@ const NookiForest = () => {
         }
     };
 
-    // Function to load and filter inscriptions
     const loadAndFilterInscriptions = async (userAccount) => {
         try {
             let loadedInscriptions = await loadAllInscriptions();
             let validInscriptions = filterValidInscriptions(loadedInscriptions);
             setInscriptions(validInscriptions);
 
-            // Separately update the linked Ordinookis in the database
             updateLinkedOrdinookis(validInscriptions);
         } catch (error) {
             console.error('Error loading and filtering inscriptions:', error);
         }
     };
 
-    // Function to update linked Ordinookis in the backend
     const updateLinkedOrdinookis = async (validOrdinookiIds) => {
-        const token = localStorage.getItem('token'); // Retrieve the token from localStorage
+        const token = localStorage.getItem('token');
 
         if (!token) {
             console.error('No token found. Please log in.');
@@ -84,14 +79,14 @@ const NookiForest = () => {
         }
 
         try {
-            const response = await fetch('http://localhost:5000/api/auth/update-ordinookis', { // Explicitly target port 5000
+            const response = await fetch('http://localhost:5000/api/auth/update-ordinookis', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` // Set the Authorization header
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    ordinookiIds: validOrdinookiIds,  // These are the valid inscriptions
+                    ordinookiIds: validOrdinookiIds,
                 }),
             });
 
@@ -132,11 +127,11 @@ const NookiForest = () => {
     };
 
     const handleSelectNooki = (id) => {
-        setSelectedNooki(id);  // Set the selected Nooki
+        setSelectedNooki(id);
     };
 
     const handleDeployNooki = async () => {
-        const token = localStorage.getItem('token'); // Retrieve the token from localStorage
+        const token = localStorage.getItem('token');
 
         if (!token) {
             console.error('No token found. Please log in.');
@@ -151,17 +146,17 @@ const NookiForest = () => {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}` // Use the token stored in localStorage
+                            'Authorization': `Bearer ${token}`
                         },
                         body: JSON.stringify({ 
                             inscriptionId: selectedNooki,
-                            userId: account // Assuming account is the user's unique identifier
+                            userId: account
                         })
                     });
 
                     if (response.ok) {
                         console.log('Ordinooki deployed successfully');
-                        // Update the map with the deployed Ordinooki here
+                        setIsDeployed(true);  // Set deployment state to true
                     } else {
                         console.error('Failed to deploy Ordinooki', response.status);
                         const errorData = await response.json();
@@ -255,7 +250,7 @@ const NookiForest = () => {
                                             src={`https://ordinals.com/content/${id}`}
                                             alt="Nooki"
                                             style={{ width: '50px', height: '50px', margin: '5px', cursor: 'pointer' }}
-                                            onClick={() => handleSelectNooki(id)}  // Select Nooki on click
+                                            onClick={() => handleSelectNooki(id)}
                                         />
                                     ))
                                 )}
@@ -263,7 +258,7 @@ const NookiForest = () => {
                             {selectedNooki && (
                                 <div>
                                     <p>Selected Nooki ID: {selectedNooki}</p>
-                                    <button onClick={handleDeployNooki}>Deploy</button>  {/* Confirm deployment */}
+                                    <button onClick={handleDeployNooki}>Deploy</button>
                                 </div>
                             )}
                         </div>

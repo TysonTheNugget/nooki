@@ -5,7 +5,6 @@ const http = require('http');
 const socketIo = require('socket.io');
 const auth = require('./routes/auth');  // Import the auth routes
 const User = require('./models/User');  // Import the User model
-const Ordinooki = require('./models/Ordinooki');  // Import the Ordinooki model
 const authMiddleware = require('./middleware/auth'); // Import the authentication middleware
 const ordinookiData = require('../ordinooki.json');  // Import the Ordinooki data from the JSON file
 
@@ -50,17 +49,22 @@ io.on('connection', (socket) => {
 // Deploy Ordinooki endpoint
 app.post('/api/deploy-nooki', authMiddleware, async (req, res) => {
     const { inscriptionId } = req.body;
-    const userId = req.user.id; // authMiddleware should attach the user object to req
+    const userId = req.user.id;
+
+    console.log('Deploy Request:', { userId, inscriptionId }); 
 
     try {
-        // Validate Ordinooki ownership
         const user = await User.findById(userId);
+        console.log('User:', user);
+
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // Check if the Ordinooki is part of the user's wallet
-        const userHasOrdinooki = await Ordinooki.findOne({ userId: user._id, inscriptionId });
+        // Check if the user's linked_ordinookis contains the inscriptionId
+        const userHasOrdinooki = user.linked_ordinookis.includes(inscriptionId);
+        console.log('Ordinooki found in user:', userHasOrdinooki);
+
         if (!userHasOrdinooki) {
             return res.status(403).json({ message: 'You do not own this Ordinooki' });
         }
@@ -74,7 +78,7 @@ app.post('/api/deploy-nooki', authMiddleware, async (req, res) => {
         // Save the deployment details in the user's profile, including all metadata
         user.deployedOrdinooki = {
             inscriptionId,
-            meta: ordinooki.meta // include all meta information
+            meta: ordinooki.meta
         };
         await user.save();
 

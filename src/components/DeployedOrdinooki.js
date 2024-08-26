@@ -55,24 +55,24 @@ export function initializeCharacter(canvas, spriteSheet) {
         let moving = false;
 
         if (keys['ArrowLeft']) {
-            character.x -= character.current.speed;
+            character.x -= character.speed;  // Fixed: No need for character.current.speed
             character.direction = 'left';
             character.facingRight = false;
             moving = true;
         }
         if (keys['ArrowRight']) {
-            character.x += character.current.speed;
+            character.x += character.speed;  // Fixed: No need for character.current.speed
             character.direction = 'right';
             character.facingRight = true;
             moving = true;
         }
         if (keys['ArrowUp']) {
-            character.y -= character.current.speed;
+            character.y -= character.speed;  // Fixed: No need for character.current.speed
             character.direction = 'up';
             moving = true;
         }
         if (keys['ArrowDown']) {
-            character.y += character.current.speed;
+            character.y += character.speed;  // Fixed: No need for character.current.speed
             character.direction = 'down';
             moving = true;
         }

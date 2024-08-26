@@ -11,7 +11,14 @@ const DeployedOrdinooki = require('./models/DeployedOrdinooki');
 
 const app = express();
 const server = http.createServer(app); // Create HTTP server
-const io = socketIo(server); // Create WebSocket server
+const io = socketIo(server, {
+  cors: {
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+  }
+});
 
 // Use CORS to allow requests from your frontend
 app.use(cors({ origin: 'http://localhost:3000' }));
@@ -62,6 +69,8 @@ app.post('/api/deploy-nooki', authMiddleware, async (req, res) => {
     const { inscriptionId, position } = req.body;
     const userId = req.user.id;
 
+    console.log('Deploy Request:', { userId, inscriptionId, position });
+
     try {
         const user = await User.findById(userId);
         if (!user) {
@@ -73,19 +82,23 @@ app.post('/api/deploy-nooki', authMiddleware, async (req, res) => {
             return res.status(404).json({ message: 'Ordinooki not found in data' });
         }
 
+        // Set default position if not provided
+        const defaultPosition = { x: 100, y: 100 };
+        const finalPosition = position || defaultPosition;
+
         // Save the deployed Ordinooki to the database
         const deployedOrdinooki = new DeployedOrdinooki({
             userId: user._id,
             inscriptionId,
-            position,
+            position: finalPosition,
             meta: ordinooki.meta
         });
 
         await deployedOrdinooki.save();
 
-        io.emit('nookiDeployed', { inscriptionId, meta: ordinooki.meta, position });
+        io.emit('nookiDeployed', { inscriptionId, meta: ordinooki.meta, position: finalPosition });
 
-        res.status(200).json({ message: 'Ordinooki deployed successfully', inscriptionId, meta: ordinooki.meta, position });
+        res.status(200).json({ message: 'Ordinooki deployed successfully', inscriptionId, meta: ordinooki.meta, position: finalPosition });
 
     } catch (error) {
         console.error('Error deploying Ordinooki:', error);

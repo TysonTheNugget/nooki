@@ -1,25 +1,27 @@
-/* Full CSS for NookiForest Layout */
-
+/* General page layout */
 body, html {
   margin: 0;
   padding: 0;
   height: 100vh;
   width: 100vw;
   overflow: hidden; /* Prevent scrolling */
-  background-color: #f0f0f0; /* Light background for the outer space */
+  background-color: #f0f0f0; /* Light background */
   display: flex;
-  justify-content: flex-end; /* Aligns everything to the right */
+  justify-content: center; /* Center overall content */
   align-items: center;
 }
 
+/* Main container to keep content centered */
 .container {
   display: flex;
-  justify-content: flex-end; /* Push content to the right */
+  justify-content: center; /* Center main content */
   align-items: center;
   width: 100%;
   height: 100%;
+  position: relative;
 }
 
+/* Nooki forest map area */
 .nooki-forest {
   background-image: url('../images/map.png');
   background-size: cover;
@@ -27,26 +29,28 @@ body, html {
   background-position: center;
   width: 1500px;
   height: 850px;
-  border: 3px solid #333;
+  border: 4px solid #333;
   border-radius: 8px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-left: auto; /* Keeps it aligned to the right */
+  margin-left: 390px; /* Use margin-left to position the map to the right */
 }
 
+/* Canvas container */
 .canvas-container {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%; /* Keep it full width within the nooki-forest */
-  height: 100%; /* Match height to its parent */
-  z-index: 2; /* Ensure canvas is above background */
-  pointer-events: none; /* Ensure canvas does not block other elements */
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
 }
 
+/* Header text */
 .header-text {
   position: absolute;
   top: 10px;
@@ -54,38 +58,39 @@ body, html {
   color: white;
   font-size: 24px;
   font-weight: bold;
-  text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.7); /* Add a shadow for readability */
-  z-index: 3; /* Ensure text is above canvas */
-  pointer-events: none; /* Prevent interaction blocking */
+  text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.7);
+  z-index: 3;
+  pointer-events: none;
 }
 
+/* Wallet button */
 .wallet-button {
-  position: fixed; /* Fix the button to the viewport */
-  top: 20px; /* Distance from the top of the viewport */
-  left: 20px; /* Distance from the left of the viewport */
-  z-index: 20; /* Ensure button is above everything else */
-  background-color: rgba(0, 0, 0, 0.7); /* Dark background for contrast */
-  color: white; /* White text for visibility */
-  padding: 8px 12px; /* Padding for a nice click area */
-  border: none; /* Remove default borders */
-  border-radius: 5px; /* Rounded corners for a softer look */
-  cursor: pointer; /* Pointer cursor for interactivity */
-  transition: background-color 0.3s, transform 0.2s; /* Smooth transitions for hover and active effects */
+  position: fixed;
+  top: 20px;
+  left: 20px; /* Keep button on the top left */
+  z-index: 20;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
 }
 
 .wallet-button:hover {
-  background-color: rgba(0, 0, 0, 0.9); /* Darken on hover for feedback */
+  background-color: rgba(0, 0, 0, 0.9);
 }
 
 .wallet-button:active {
-  transform: scale(0.95); /* Slight scale down on click for feedback */
+  transform: scale(0.95);
 }
 
-/* Wallet Container styles */
+/* Wallet container styles */
 .wallet-container {
-  position: fixed; /* Fix position to the viewport */
+  position: fixed;
   top: 70px;
-  right: 20px; /* Positioned outside of the map area */
+  right: 20px;
   background-color: rgba(0, 0, 0, 0.9);
   padding: 20px;
   border-radius: 10px;
@@ -96,7 +101,7 @@ body, html {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  z-index: 20; /* Above game elements */
+  z-index: 20;
   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
 }
 
@@ -104,7 +109,7 @@ body, html {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  cursor: move; /* Change cursor to indicate drag handle */
+  cursor: move;
 }
 
 .wallet-container .wallet-header h2 {
@@ -150,12 +155,11 @@ body, html {
   text-decoration: underline;
 }
 
-/* Add a nice cursor style for interactable elements */
 button, .copy-btn {
   cursor: pointer;
-  transition: transform 0.2s; /* Add a little scale effect */
+  transition: transform 0.2s;
 }
 
 button:hover, .copy-btn:hover {
-  transform: scale(1.05); /* Slightly enlarge on hover for feedback */
+  transform: scale(1.05);
 }

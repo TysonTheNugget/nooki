@@ -102,68 +102,19 @@ const NookiForest = () => {
     }, [isDeployed]);
 
     return (
-        <div className="container">
-            {/* Wallet connection and visibility toggle */}
-            {!walletConnected ? (
-                <button className="wallet-button" onClick={connectWallet}>Connect UniSat Wallet</button>
-            ) : (
-                <button className="wallet-button" onClick={toggleWalletVisibility}>
-                    {walletVisible ? 'Hide Wallet' : 'Show Wallet'}
-                </button>
-            )}
+    <div className="container">
+        {/* Wallet connection and visibility toggle */}
+        {!walletConnected ? (
+            <button className="wallet-button" onClick={connectWallet}>Connect UniSat Wallet</button>
+        ) : (
+            <button className="wallet-button" onClick={toggleWalletVisibility}>
+                {walletVisible ? 'Hide Wallet' : 'Show Wallet'}
+            </button>
+        )}
 
-            {/* Game area */}
-            <div className="nooki-forest">
-                <canvas ref={canvasRef} className="canvas-container"></canvas> {/* Always show canvas, sprite renders on deploy */}
-                {!isDeployed && <h1 className="header-text">Welcome to Nooki Forest</h1>} 
-            </div>
-
-            {/* Wallet visibility and controls */}
-            {walletVisible && (
-                <div
-                    id="walletContainer"
-                    ref={walletContainerRef}
-                    className={`wallet-container ${walletVisible ? 'visible' : 'hidden'}`}
-                >
-                    <div
-                        className="wallet-header draggable"
-                        onMouseDown={startDragging}
-                    >
-                        <h2>Your Wallet</h2>
-                        <button className="close-btn" onClick={toggleWalletVisibility}>×</button>
-                    </div>
-                    <div className="wallet-content">
-                        <p>
-                            Address: {shortenAddress(account)}{' '}
-                            <button onClick={copyAddressToClipboard} className="copy-btn">
-                                [Copy Full Address]
-                            </button>
-                        </p>
-                        <div id="nookieImages">
-                            {inscriptions.length === 0 ? (
-                                <p>No valid Nookis found.</p>
-                            ) : (
-                                inscriptions.map(id => (
-                                    <img
-                                        key={id}
-                                        src={`https://ordinals.com/content/${id}`}
-                                        alt="Nooki"
-                                        style={{ width: '50px', height: '50px', margin: '5px', cursor: 'pointer' }}
-                                        onClick={() => handleSelectNooki(id)}
-                                    />
-                                ))
-                            )}
-                        </div>
-                        {selectedNooki && (
-                            <div>
-                                <p>Selected Nooki ID: {selectedNooki}</p>
-                                <button onClick={handleDeployNooki}>Deploy</button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
+        {/* Centered content area */}
+        <div className="content">
+            {/* Any other content that needs to be centered */}
             {/* Render deployed Nookis */}
             {deployedNookis.map((nooki, index) => (
                 <div key={index} style={{ position: 'absolute', top: nooki.position.y, left: nooki.position.x }}>
@@ -171,6 +122,61 @@ const NookiForest = () => {
                 </div>
             ))}
         </div>
+
+        {/* Map area */}
+        <div className="nooki-forest-wrapper">
+            <div className="nooki-forest">
+                <canvas ref={canvasRef} className="canvas-container"></canvas> {/* Always show canvas, sprite renders on deploy */}
+                {!isDeployed && <h1 className="header-text">Welcome to Nooki Forest</h1>} 
+            </div>
+        </div>
+
+        {/* Wallet visibility and controls */}
+        {walletVisible && (
+            <div
+                id="walletContainer"
+                ref={walletContainerRef}
+                className={`wallet-container ${walletVisible ? 'visible' : 'hidden'}`}
+            >
+                <div
+                    className="wallet-header draggable"
+                    onMouseDown={startDragging}
+                >
+                    <h2>Your Wallet</h2>
+                    <button className="close-btn" onClick={toggleWalletVisibility}>×</button>
+                </div>
+                <div className="wallet-content">
+                    <p>
+                        Address: {shortenAddress(account)}{' '}
+                        <button onClick={copyAddressToClipboard} className="copy-btn">
+                            [Copy Full Address]
+                        </button>
+                    </p>
+                    <div id="nookieImages">
+                        {inscriptions.length === 0 ? (
+                            <p>No valid Nookis found.</p>
+                        ) : (
+                            inscriptions.map(id => (
+                                <img
+                                    key={id}
+                                    src={`https://ordinals.com/content/${id}`}
+                                    alt="Nooki"
+                                    style={{ width: '50px', height: '50px', margin: '5px', cursor: 'pointer' }}
+                                    onClick={() => handleSelectNooki(id)}
+                                />
+                            ))
+                        )}
+                    </div>
+                    {selectedNooki && (
+                        <div>
+                            <p>Selected Nooki ID: {selectedNooki}</p>
+                            <button onClick={handleDeployNooki}>Deploy</button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        )}
+    </div>
     );
 };
 

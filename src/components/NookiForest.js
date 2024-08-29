@@ -1,207 +1,20 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { initializeCharacter } from './DeployedOrdinooki';
-import io from 'socket.io-client';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { useSocket } from './useSocket';
+import { useWallet } from './useWallet';
+import { useInscriptions } from './useInscriptions';
 import spriteSheet from '../images/walkingfull.png';
+import { initializeCharacter } from './DeployedOrdinooki';
 import './NookiForest.css';
-import ordinookiData from '../ordinooki';  // Import the ordinooki data
 
 const NookiForest = () => {
-    const [isDeployed, setIsDeployed] = useState(false);  // Add state to track deployment
-    const [deployedNookis, setDeployedNookis] = useState([]);
     const canvasRef = useRef(null);
-
-    useEffect(() => {
-    const fetchDeployedOrdinookis = async () => {
-        try {
-            const response = await fetch('/api/deployed-nookis');
-            const data = await response.json();
-            setDeployedNookis(data);  // Load all deployed nookis
-        } catch (error) {
-            console.error('Error fetching deployed Ordinookis:', error);
-        }
-    };
-
-    fetchDeployedOrdinookis();
-}, []);
-
-useEffect(() => {
-    const socket = io('http://localhost:5000');
-
-    socket.on('nookiDeployed', (data) => {
-        setDeployedNookis((prev) => [...prev, data]);
-    });
-
-    return () => socket.disconnect();
-}, []);
-
-    // Handling character deployment
-    useEffect(() => {
-        let characterController;
-
-        if (isDeployed) {
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext('2d');
-
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-
-            characterController = initializeCharacter(canvas, spriteSheet);
-            characterController.start(ctx);
-        }
-
-        return () => {
-            if (characterController) {
-                // Cleanup logic if necessary
-            }
-        };
-    }, [isDeployed]);
-
-    const [walletConnected, setWalletConnected] = useState(false);
-    const [account, setAccount] = useState(null);
-    const [walletVisible, setWalletVisible] = useState(false);
-    const [inscriptions, setInscriptions] = useState([]);
-    const [selectedNooki, setSelectedNooki] = useState(null);
     const walletContainerRef = useRef(null);
     const [dragging, setDragging] = useState(false);
     const [initialPos, setInitialPos] = useState({ x: 0, y: 0 });
-
-    const connectWallet = async () => {
-        if (typeof window.unisat !== 'undefined') {
-            try {
-                const accounts = await window.unisat.requestAccounts();
-                setAccount(accounts[0]);
-                setWalletConnected(true);
-                setWalletVisible(true);
-                console.log("Wallet connected successfully:", accounts[0]);
-
-                loadAndFilterInscriptions(accounts[0]);
-            } catch (error) {
-                console.error('Error connecting to wallet:', error);
-            }
-        } else {
-            alert('Please install the UniSat Wallet extension!');
-        }
-    };
-
-    const loadAndFilterInscriptions = async (userAccount) => {
-        try {
-            let loadedInscriptions = await loadAllInscriptions();
-            let validInscriptions = filterValidInscriptions(loadedInscriptions);
-            setInscriptions(validInscriptions);
-
-            updateLinkedOrdinookis(validInscriptions);
-        } catch (error) {
-            console.error('Error loading and filtering inscriptions:', error);
-        }
-    };
-
-    const updateLinkedOrdinookis = async (validOrdinookiIds) => {
-        const token = localStorage.getItem('token');
-
-        if (!token) {
-            console.error('No token found. Please log in.');
-            return;
-        }
-
-        try {
-            const response = await fetch('http://localhost:5000/api/auth/update-ordinookis', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    ordinookiIds: validOrdinookiIds,
-                }),
-            });
-
-            if (response.ok) {
-                console.log('Ordinookis linked successfully');
-            } else {
-                console.error('Failed to link Ordinookis:', response.status);
-            }
-        } catch (error) {
-            console.error('Error updating linked Ordinookis:', error);
-        }
-    };
-
-    const loadAllInscriptions = async () => {
-        let allInscriptions = [];
-        let page = 0;
-        const pageSize = 10;
-
-        try {
-            while (true) {
-                let inscriptions = await window.unisat.getInscriptions(page * pageSize, pageSize);
-                if (inscriptions.list.length === 0) break;
-                allInscriptions = allInscriptions.concat(inscriptions.list.map(inscription => inscription.inscriptionId));
-                page++;
-            }
-
-            return allInscriptions;
-        } catch (error) {
-            console.error('Error loading inscriptions:', error);
-            return [];
-        }
-    };
-
-    const filterValidInscriptions = (inscriptions) => {
-        return inscriptions.filter(id => {
-            return ordinookiData.some(nooki => nooki.id === id);
-        });
-    };
-
-    const handleSelectNooki = (id) => {
-        setSelectedNooki(id);
-    };
-
-    const handleDeployNooki = async () => {
-        const token = localStorage.getItem('token');
-
-        if (!token) {
-            console.error('No token found. Please log in.');
-            return;
-        }
-
-        if (selectedNooki) {
-            const confirmDeploy = window.confirm("Are you sure you want to deploy this Ordinooki?");
-            if (confirmDeploy) {
-                try {
-                    const response = await fetch('/api/deploy-nooki', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify({ 
-                            inscriptionId: selectedNooki,
-                            userId: account
-                        })
-                    });
-
-                    if (response.ok) {
-                        console.log('Ordinooki deployed successfully');
-                        setIsDeployed(true);  // Set deployment state to true
-                    } else {
-                        console.error('Failed to deploy Ordinooki', response.status);
-                        const errorData = await response.json();
-                        console.error('Error details:', errorData);
-                    }
-                } catch (error) {
-                    console.error('Error deploying Ordinooki:', error);
-                }
-            }
-        }
-    };
-
-    const toggleWalletVisibility = () => {
-        setWalletVisible(!walletVisible);
-    };
-
-    const copyAddressToClipboard = () => {
-        navigator.clipboard.writeText(account);
-        alert('Address copied to clipboard!');
-    };
+    const [isDeployed, setIsDeployed] = useState(false);  
+    const { walletConnected, account, walletVisible, connectWallet, toggleWalletVisibility, copyAddressToClipboard } = useWallet();
+    const { inscriptions, selectedNooki, handleSelectNooki } = useInscriptions(account);
+    const deployedNookis = useSocket();
 
     const startDragging = (e) => {
         setDragging(true);
@@ -236,72 +49,128 @@ useEffect(() => {
         return `${address.slice(0, 6)}....${address.slice(-6)}`;
     };
 
+    const handleDeployNooki = async () => {
+        const token = localStorage.getItem('token');
+
+        if (!token) {
+            console.error('No token found. Please log in.');
+            return;
+        }
+
+        if (selectedNooki) {
+            const confirmDeploy = window.confirm("Are you sure you want to deploy this Ordinooki?");
+            if (confirmDeploy) {
+                try {
+                    const response = await fetch('/api/deploy-nooki', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ 
+                            inscriptionId: selectedNooki,
+                            userId: account
+                        })
+                    });
+
+                    if (response.ok) {
+                        console.log('Ordinooki deployed successfully');
+                        setIsDeployed(true);  
+                    } else {
+                        console.error('Failed to deploy Ordinooki', response.status);
+                        const errorData = await response.json();
+                        console.error('Error details:', errorData);
+                    }
+                } catch (error) {
+                    console.error('Error deploying Ordinooki:', error);
+                }
+            }
+        }
+    };
+
+    useEffect(() => {
+        if (isDeployed) {  
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const characterController = initializeCharacter(canvas, spriteSheet);
+            characterController.start(ctx);
+        }
+    }, [isDeployed]);
+
     return (
-        <div className="nooki-forest">
-		    <div className="nooki-forest">
-        <canvas ref={canvasRef}></canvas>
-        {deployedNookis.map((nooki, index) => (
-            <div key={index} style={{ position: 'absolute', top: nooki.position.y, left: nooki.position.x }}>
-                {/* Render the nooki sprite here */}
-            </div>
-        ))}
-    </div>
-            <h1>Welcome to Nooki Forest</h1>
+        <div className="container">
+            {/* Wallet connection and visibility toggle */}
             {!walletConnected ? (
-                <button onClick={connectWallet}>Connect UniSat Wallet</button>
+                <button className="wallet-button" onClick={connectWallet}>Connect UniSat Wallet</button>
             ) : (
-                <>
-                    <button onClick={toggleWalletVisibility}>
-                        {walletVisible ? 'Hide Wallet' : 'Show Wallet'}
-                    </button>
+                <button className="wallet-button" onClick={toggleWalletVisibility}>
+                    {walletVisible ? 'Hide Wallet' : 'Show Wallet'}
+                </button>
+            )}
+
+            {/* Game area */}
+            <div className="nooki-forest">
+                <canvas ref={canvasRef} className="canvas-container"></canvas> {/* Always show canvas, sprite renders on deploy */}
+                {!isDeployed && <h1 className="header-text">Welcome to Nooki Forest</h1>} 
+            </div>
+
+            {/* Wallet visibility and controls */}
+            {walletVisible && (
+                <div
+                    id="walletContainer"
+                    ref={walletContainerRef}
+                    className={`wallet-container ${walletVisible ? 'visible' : 'hidden'}`}
+                >
                     <div
-                        id="walletContainer"
-                        ref={walletContainerRef}
-                        className={`wallet-container ${walletVisible ? 'visible' : 'hidden'}`}
+                        className="wallet-header draggable"
+                        onMouseDown={startDragging}
                     >
-                        <div
-                            className="wallet-header draggable"
-                            onMouseDown={startDragging}
-                        >
-                            <h2>Your Wallet</h2>
-                            <button className="close-btn" onClick={toggleWalletVisibility}>×</button>
-                        </div>
-                        <div className="wallet-content">
-                            <p>
-                                Address: {shortenAddress(account)}{' '}
-                                <button onClick={copyAddressToClipboard} className="copy-btn">
-                                    [Copy Full Address]
-                                </button>
-                            </p>
-                            <div id="nookieImages">
-                                {inscriptions.length === 0 ? (
-                                    <p>No valid Nookis found.</p>
-                                ) : (
-                                    inscriptions.map(id => (
-                                        <img
-                                            key={id}
-                                            src={`https://ordinals.com/content/${id}`}
-                                            alt="Nooki"
-                                            style={{ width: '50px', height: '50px', margin: '5px', cursor: 'pointer' }}
-                                            onClick={() => handleSelectNooki(id)}
-                                        />
-                                    ))
-									
-                                )}
-                            </div> 
-                            {selectedNooki && (
-                                <div>
-                                    <p>Selected Nooki ID: {selectedNooki}</p>
-                                    <button onClick={handleDeployNooki}>Deploy</button>
-                                </div> 
+                        <h2>Your Wallet</h2>
+                        <button className="close-btn" onClick={toggleWalletVisibility}>×</button>
+                    </div>
+                    <div className="wallet-content">
+                        <p>
+                            Address: {shortenAddress(account)}{' '}
+                            <button onClick={copyAddressToClipboard} className="copy-btn">
+                                [Copy Full Address]
+                            </button>
+                        </p>
+                        <div id="nookieImages">
+                            {inscriptions.length === 0 ? (
+                                <p>No valid Nookis found.</p>
+                            ) : (
+                                inscriptions.map(id => (
+                                    <img
+                                        key={id}
+                                        src={`https://ordinals.com/content/${id}`}
+                                        alt="Nooki"
+                                        style={{ width: '50px', height: '50px', margin: '5px', cursor: 'pointer' }}
+                                        onClick={() => handleSelectNooki(id)}
+                                    />
+                                ))
                             )}
                         </div>
+                        {selectedNooki && (
+                            <div>
+                                <p>Selected Nooki ID: {selectedNooki}</p>
+                                <button onClick={handleDeployNooki}>Deploy</button>
+                            </div>
+                        )}
                     </div>
-                </>
+                </div>
             )}
-            <canvas ref={canvasRef}></canvas>
+
+            {/* Render deployed Nookis */}
+            {deployedNookis.map((nooki, index) => (
+                <div key={index} style={{ position: 'absolute', top: nooki.position.y, left: nooki.position.x }}>
+                    {/* Render the nooki sprite here */}
+                </div>
+            ))}
         </div>
-		
     );
 };
 

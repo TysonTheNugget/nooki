@@ -1,13 +1,12 @@
-// DeployedOrdinooki.js
-
 export function initializeCharacter(canvas, spriteSheet) {
     const character = {
-        x: canvas.width / 2 - 16,
+        x: canvas.width / 2 - 16,  // Centered position adjusted for 32x32 sprite
         y: canvas.height / 2 - 16,
-        width: 32,
-        height: 32,
+        width: 32,  // Original sprite width
+        height: 32,  // Original sprite height
+        scale: 3,   // Scale factor to increase character size
         frameX: 0,
-        speed: 5,
+        speed: 6,
         direction: 'down',
         facingRight: true,
         moving: false,
@@ -17,11 +16,25 @@ export function initializeCharacter(canvas, spriteSheet) {
     const bufferCanvas = document.createElement('canvas');
     const bufferCtx = bufferCanvas.getContext('2d');
 
-    bufferCanvas.width = canvas.width;
-    bufferCanvas.height = canvas.height;
+    // Resize buffer canvas based on the fixed size
+    bufferCanvas.width = 1024;
+    bufferCanvas.height = 1024;
+
+    function updateCanvasSize() {
+        canvas.width = 1024;
+        canvas.height = 1024;
+        bufferCanvas.width = canvas.width;
+        bufferCanvas.height = canvas.height;
+
+        character.x = Math.min(canvas.width - character.width, Math.max(0, character.x));
+        character.y = Math.min(canvas.height - character.height, Math.max(0, character.y));
+    }
+
+    updateCanvasSize(); // Initial size adjustment
 
     function drawSprite(img, frameX, canvasX, canvasY, flipH) {
         bufferCtx.save();
+        bufferCtx.imageSmoothingEnabled = false; // Disable smoothing for pixel art HD look
         if (flipH) {
             bufferCtx.scale(-1, 1);
             bufferCtx.drawImage(
@@ -30,10 +43,10 @@ export function initializeCharacter(canvas, spriteSheet) {
                 0,
                 character.width,
                 character.height,
-                -canvasX - 128,
+                -canvasX - character.width * character.scale,
                 canvasY,
-                128,
-                128
+                character.width * character.scale,
+                character.height * character.scale
             );
         } else {
             bufferCtx.drawImage(
@@ -44,41 +57,48 @@ export function initializeCharacter(canvas, spriteSheet) {
                 character.height,
                 canvasX,
                 canvasY,
-                128,
-                128
+                character.width * character.scale,
+                character.height * character.scale
             );
         }
         bufferCtx.restore();
     }
 
     function moveCharacter() {
-        let moving = false;
+    let moving = false;
 
-        if (keys['ArrowLeft']) {
-            character.x -= character.speed;  // Fixed: No need for character.current.speed
-            character.direction = 'left';
-            character.facingRight = false;
-            moving = true;
-        }
-        if (keys['ArrowRight']) {
-            character.x += character.speed;  // Fixed: No need for character.current.speed
-            character.direction = 'right';
-            character.facingRight = true;
-            moving = true;
-        }
-        if (keys['ArrowUp']) {
-            character.y -= character.speed;  // Fixed: No need for character.current.speed
-            character.direction = 'up';
-            moving = true;
-        }
-        if (keys['ArrowDown']) {
-            character.y += character.speed;  // Fixed: No need for character.current.speed
-            character.direction = 'down';
-            moving = true;
-        }
-
-        character.moving = moving;
+    // Ensure character doesn't move beyond the left boundary
+    if (keys['ArrowLeft']) {
+        character.x = Math.max(0, character.x - character.speed);
+        character.direction = 'left';
+        character.facingRight = false;
+        moving = true;
     }
+
+    // Ensure character doesn't move beyond the right boundary
+    if (keys['ArrowRight']) {
+        character.x = Math.min(bufferCanvas.width - character.width * character.scale, character.x + character.speed);
+        character.direction = 'right';
+        character.facingRight = true;
+        moving = true;
+    }
+
+    // Ensure character doesn't move beyond the top boundary
+    if (keys['ArrowUp']) {
+        character.y = Math.max(0, character.y - character.speed);
+        character.direction = 'up';
+        moving = true;
+    }
+
+    // Ensure character doesn't move beyond the bottom boundary
+    if (keys['ArrowDown']) {
+        character.y = Math.min(bufferCanvas.height - character.height * character.scale, character.y + character.speed);
+        character.direction = 'down';
+        moving = true;
+    }
+
+    character.moving = moving;
+}
 
     function animate(ctx, sprite) {
         bufferCtx.clearRect(0, 0, bufferCanvas.width, bufferCanvas.height);

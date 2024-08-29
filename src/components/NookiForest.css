@@ -1,18 +1,91 @@
-.nooki-forest {
-  background-color: green;
+/* Full CSS for NookiForest Layout */
+
+body, html {
+  margin: 0;
+  padding: 0;
   height: 100vh;
+  width: 100vw;
+  overflow: hidden; /* Prevent scrolling */
+  background-color: #f0f0f0; /* Light background for the outer space */
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end; /* Aligns everything to the right */
   align-items: center;
-  color: white;
-  text-align: center;
 }
 
-.wallet-container {
+.container {
+  display: flex;
+  justify-content: flex-end; /* Push content to the right */
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.nooki-forest {
+  background-image: url('../images/map.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  width: 1500px;
+  height: 850px;
+  border: 3px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-left: auto; /* Keeps it aligned to the right */
+}
+
+.canvas-container {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 0;
+  left: 0;
+  width: 100%; /* Keep it full width within the nooki-forest */
+  height: 100%; /* Match height to its parent */
+  z-index: 2; /* Ensure canvas is above background */
+  pointer-events: none; /* Ensure canvas does not block other elements */
+}
+
+.header-text {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.7); /* Add a shadow for readability */
+  z-index: 3; /* Ensure text is above canvas */
+  pointer-events: none; /* Prevent interaction blocking */
+}
+
+.wallet-button {
+  position: fixed; /* Fix the button to the viewport */
+  top: 20px; /* Distance from the top of the viewport */
+  left: 20px; /* Distance from the left of the viewport */
+  z-index: 20; /* Ensure button is above everything else */
+  background-color: rgba(0, 0, 0, 0.7); /* Dark background for contrast */
+  color: white; /* White text for visibility */
+  padding: 8px 12px; /* Padding for a nice click area */
+  border: none; /* Remove default borders */
+  border-radius: 5px; /* Rounded corners for a softer look */
+  cursor: pointer; /* Pointer cursor for interactivity */
+  transition: background-color 0.3s, transform 0.2s; /* Smooth transitions for hover and active effects */
+}
+
+.wallet-button:hover {
+  background-color: rgba(0, 0, 0, 0.9); /* Darken on hover for feedback */
+}
+
+.wallet-button:active {
+  transform: scale(0.95); /* Slight scale down on click for feedback */
+}
+
+/* Wallet Container styles */
+.wallet-container {
+  position: fixed; /* Fix position to the viewport */
+  top: 70px;
+  right: 20px; /* Positioned outside of the map area */
   background-color: rgba(0, 0, 0, 0.9);
   padding: 20px;
   border-radius: 10px;
@@ -23,7 +96,7 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  z-index: 10;
+  z-index: 20; /* Above game elements */
   box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
 }
 
@@ -75,4 +148,14 @@
 
 .copy-btn:hover {
   text-decoration: underline;
+}
+
+/* Add a nice cursor style for interactable elements */
+button, .copy-btn {
+  cursor: pointer;
+  transition: transform 0.2s; /* Add a little scale effect */
+}
+
+button:hover, .copy-btn:hover {
+  transform: scale(1.05); /* Slightly enlarge on hover for feedback */
 }

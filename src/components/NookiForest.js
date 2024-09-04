@@ -1,53 +1,25 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+// src/components/NookiForest.js
+import React, { useRef, useState, useEffect } from 'react';
+import Phaser from 'phaser';
+import WalletManager from './WalletManager';
 import { useSocket } from './useSocket';
-import { useWallet } from './useWallet';
-import { useInscriptions } from './useInscriptions';
-import spriteSheet from '../images/walkingfull.png';
-import { initializeCharacter } from './DeployedOrdinooki';
 import './NookiForest.css';
 
 const NookiForest = () => {
-    const canvasRef = useRef(null);
-    const walletContainerRef = useRef(null);
-    const [dragging, setDragging] = useState(false);
-    const [initialPos, setInitialPos] = useState({ x: 0, y: 0 });
-    const [isDeployed, setIsDeployed] = useState(false);  
-    const { walletConnected, account, walletVisible, connectWallet, toggleWalletVisibility, copyAddressToClipboard } = useWallet();
-    const { inscriptions, selectedNooki, handleSelectNooki } = useInscriptions(account);
+    const gameContainerRef = useRef(null); // Reference for the Phaser game container
+    const [isDeployed, setIsDeployed] = useState(false); // State for Nooki deployment
+    const [selectedNooki, setSelectedNooki] = useState(null); // State for selected Nooki
+    const [account, setAccount] = useState(null); // State for user account
     const deployedNookis = useSocket();
-
-    const startDragging = (e) => {
-        setDragging(true);
-        setInitialPos({
-            x: e.clientX - walletContainerRef.current.offsetLeft,
-            y: e.clientY - walletContainerRef.current.offsetTop,
-        });
-    };
-
-    const onDragging = useCallback((e) => {
-        if (dragging) {
-            walletContainerRef.current.style.left = `${e.clientX - initialPos.x}px`;
-            walletContainerRef.current.style.top = `${e.clientY - initialPos.y}px`;
-        }
-    }, [dragging, initialPos]);
-
-    const stopDragging = () => {
-        setDragging(false);
-    };
-
-    useEffect(() => {
-        document.addEventListener('mousemove', onDragging);
-        document.addEventListener('mouseup', stopDragging);
-
-        return () => {
-            document.removeEventListener('mousemove', onDragging);
-            document.removeEventListener('mouseup', stopDragging);
-        };
-    }, [onDragging]);
-
-    const shortenAddress = (address) => {
-        return `${address.slice(0, 6)}....${address.slice(-6)}`;
-    };
+    const socketRef = useRef(null); // Reference for WebSocket
+    const playerId = useRef(null); // Reference for player ID
+    const players = useRef({}); // Reference for players object
+    const cursors = useRef(null); // Reference for keyboard cursors
+    const gameRef = useRef(null); // Reference for the Phaser game instance
+    const smoothingFactor = 0.5;
+    const stopAnimationDelay = 100;
+    const maxDeltaTime = 50;
+    const lastSentTime = useRef(0);
 
     const handleDeployNooki = async () => {
         const token = localStorage.getItem('token');
@@ -89,94 +61,219 @@ const NookiForest = () => {
     };
 
     useEffect(() => {
-        if (isDeployed) {  
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext('2d');
+        if (isDeployed) {
+            const config = {
+                type: Phaser.AUTO,
+                width: 1500,
+                height: 850,
+                backgroundColor: '#ADD8E6',
+                physics: {
+                    default: 'arcade',
+                    arcade: { debug: false }
+                },
+                scene: { preload, create, update },
+                parent: gameContainerRef.current,
+            };
 
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            gameRef.current = new Phaser.Game(config);
 
-            const characterController = initializeCharacter(canvas, spriteSheet);
-            characterController.start(ctx);
+            return () => {
+                if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+                    socketRef.current.close();
+                }
+                if (gameRef.current) gameRef.current.destroy(true);
+            };
         }
     }, [isDeployed]);
 
+    function preload() {
+        this.load.spritesheet('character', '/assets/sprites/character.png', { frameWidth: 32, frameHeight: 32 });
+        this.load.image('map', '../images/map.png');  // Replace with the correct path to your image
+    }
+
+    function create() {
+        const scene = this;
+        socketRef.current = new WebSocket('ws://localhost:8081');
+        
+        const map = this.add.image(0, 0, 'map').setOrigin(0).setDepth(0); 
+
+        this.cameras.main.setBounds(0, 0, map.width, map.height);
+        this.physics.world.setBounds(0, 0, map.width, map.height);
+
+        socketRef.current.onopen = () => console.log('Connected to WebSocket server');
+
+        socketRef.current.onmessage = (message) => {
+            const data = JSON.parse(message.data);
+            switch (data.type) {
+                case 'init':
+                    playerId.current = data.id;
+                    players.current = {};
+
+                    if (isDeployed) {
+                        Object.keys(data.players).forEach((id) => {
+                            if (id !== playerId.current) {
+                                createPlayer(scene, id, data.players[id].x, data.players[id].y);
+                            }
+                        });
+                        createPlayer(scene, playerId.current, 400, 300);
+                        cursors.current = scene.input.keyboard.createCursorKeys();
+                        scene.input.keyboard.on('keyup', handleKeyRelease, this);
+                    }
+                    break;
+                case 'new-player':
+                    if (isDeployed) {
+                        createPlayer(scene, data.id, data.x, data.y);
+                    }
+                    break;
+                case 'state':
+                    if (isDeployed) {
+                        Object.keys(data.players).forEach((id) => {
+                            if (players.current[id]) {
+                                interpolatePosition(players.current[id], data.players[id]);
+                            } else {
+                                createPlayer(scene, id, data.players[id].x, data.players[id].y);
+                            }
+                        });
+                    }
+                    break;
+                case 'remove-player':
+                    if (players.current[data.id]) {
+                        players.current[data.id].sprite.destroy();
+                        delete players.current[data.id];
+                    }
+                    break;
+                default:
+                    console.log(`Unhandled case: ${data.type}`);
+                    break;
+            }
+        };
+
+        createAnimations(scene);
+    }
+
+    function update(time) {
+        if (!players.current[playerId.current] || !players.current[playerId.current].sprite) return;
+
+        const player = players.current[playerId.current];
+        player.sprite.setVelocity(0);
+        const speed = 20;
+        let moved = false;
+        let direction = 'stand';
+        let vx = 0, vy = 0;
+        const deltaTime = Math.min(time - lastSentTime.current, maxDeltaTime);
+
+        if (cursors.current.right.isDown && cursors.current.up.isDown) { vx = speed; vy = -speed; direction = 'right'; }
+        else if (cursors.current.right.isDown && cursors.current.down.isDown) { vx = speed; vy = speed; direction = 'right'; }
+        else if (cursors.current.left.isDown && cursors.current.up.isDown) { vx = -speed; vy = -speed; direction = 'left'; }
+        else if (cursors.current.left.isDown && cursors.current.down.isDown) { vx = -speed; vy = speed; direction = 'left'; }
+        else if (cursors.current.right.isDown) { vx = speed; direction = 'right'; }
+        else if (cursors.current.left.isDown) { vx = -speed; direction = 'left'; }
+        else if (cursors.current.up.isDown) { vy = -speed; direction = 'up'; }
+        else if (cursors.current.down.isDown) { vy = speed; direction = 'down'; }
+
+        if (direction !== 'stand') {
+            player.sprite.x += vx * (deltaTime / 1000);
+            player.sprite.y += vy * (deltaTime / 1000);
+            setPlayerAnimation(player, direction);
+            moved = true;
+        } else {
+            setTimeout(() => {
+                if (!player.sprite.anims.isPlaying) setPlayerAnimation(player, 'stand');
+            }, stopAnimationDelay);
+        }
+
+        if (moved && (time - lastSentTime.current > 50)) {
+            sendPlayerPosition(player.sprite.x, player.sprite.y, direction, vx, vy);
+            lastSentTime.current = time;
+        }
+    }
+
+    function handleKeyRelease(event) {
+        if (['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
+            sendPlayerPosition(players.current[playerId.current].sprite.x, players.current[playerId.current].sprite.y, 'stand', 0, 0);
+        }
+    }
+
+    function sendPlayerPosition(x, y, direction, vx = 0, vy = 0) {
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+            socketRef.current.send(JSON.stringify({ type: 'move', id: playerId.current, x, y, direction, vx, vy }));
+        }
+    }
+
+    function interpolatePosition(player, serverData) {
+        if (!player || !player.sprite) return;
+        player.sprite.x = Phaser.Math.Interpolation.Linear([player.sprite.x, serverData.x], smoothingFactor);
+        player.sprite.y = Phaser.Math.Interpolation.Linear([player.sprite.y, serverData.y], smoothingFactor);
+        handleAnimationWithDelay(player, serverData.direction);
+    }
+
+    function handleAnimationWithDelay(player, direction) {
+        if (!player || !player.sprite) return;
+        if (direction === 'stand') {
+            setTimeout(() => setPlayerAnimation(player, 'stand'), stopAnimationDelay);
+        } else {
+            setPlayerAnimation(player, direction);
+        }
+    }
+
+    function createAnimations(scene) {
+        scene.anims.create({ key: 'stand', frames: [{ key: 'character', frame: 0 }], frameRate: 10 });
+        scene.anims.create({ key: 'run-right', frames: scene.anims.generateFrameNumbers('character', { start: 1, end: 10 }), frameRate: 10, repeat: -1 });
+        scene.anims.create({ key: 'run-left', frames: scene.anims.generateFrameNumbers('character', { start: 1, end: 10 }), frameRate: 10, repeat: -1 });
+        scene.anims.create({ key: 'run-up', frames: scene.anims.generateFrameNumbers('character', { start: 11, end: 12 }), frameRate: 5, repeat: -1 });
+        scene.anims.create({ key: 'run-down', frames: scene.anims.generateFrameNumbers('character', { start: 13, end: 14 }), frameRate: 5, repeat: -1 });
+    }
+
+    function createPlayer(scene, id, x, y) {
+        players.current[id] = {
+            sprite: scene.physics.add.sprite(x, y, 'character').setCollideWorldBounds(true).setScale(2),
+            facing: 'right',
+            lastDirection: 'stand'
+        };
+    }
+
+    function setPlayerAnimation(player, direction) {
+        if (!player || !player.sprite) return;
+        let animationKey = '';
+        let flipX = false;
+
+        switch (direction) {
+            case 'right': animationKey = 'run-right'; flipX = false; player.facing = 'right'; break;
+            case 'left': animationKey = 'run-left'; flipX = true; player.facing = 'left'; break;
+            case 'up': animationKey = 'run-up'; break;
+            case 'down': animationKey = 'run-down'; break;
+            default: animationKey = 'stand'; flipX = player.facing === 'left';
+        }
+
+        if (!player.sprite.anims.isPlaying || player.sprite.anims.currentAnim.key !== animationKey) {
+            player.sprite.anims.play(animationKey, true);
+            player.sprite.setFlipX(flipX);
+        }
+    }
+
     return (
-    <div className="container">
-        {/* Wallet connection and visibility toggle */}
-        {!walletConnected ? (
-            <button className="wallet-button" onClick={connectWallet}>Connect UniSat Wallet</button>
-        ) : (
-            <button className="wallet-button" onClick={toggleWalletVisibility}>
-                {walletVisible ? 'Hide Wallet' : 'Show Wallet'}
-            </button>
-        )}
+        <div className="container">
+            <WalletManager 
+                onDeployNooki={handleDeployNooki} 
+                setSelectedNooki={setSelectedNooki} 
+                setAccount={setAccount} 
+            />
 
-        {/* Centered content area */}
-        <div className="content">
-            {/* Any other content that needs to be centered */}
-            {/* Render deployed Nookis */}
-            {deployedNookis.map((nooki, index) => (
-                <div key={index} style={{ position: 'absolute', top: nooki.position.y, left: nooki.position.x }}>
-                    {/* Render the nooki sprite here */}
-                </div>
-            ))}
-        </div>
-
-        {/* Map area */}
-        <div className="nooki-forest-wrapper">
-            <div className="nooki-forest">
-                <canvas ref={canvasRef} className="canvas-container"></canvas> {/* Always show canvas, sprite renders on deploy */}
-                {!isDeployed && <h1 className="header-text">Welcome to Nooki Forest</h1>} 
-            </div>
-        </div>
-
-        {/* Wallet visibility and controls */}
-        {walletVisible && (
-            <div
-                id="walletContainer"
-                ref={walletContainerRef}
-                className={`wallet-container ${walletVisible ? 'visible' : 'hidden'}`}
-            >
-                <div
-                    className="wallet-header draggable"
-                    onMouseDown={startDragging}
-                >
-                    <h2>Your Wallet</h2>
-                    <button className="close-btn" onClick={toggleWalletVisibility}>×</button>
-                </div>
-                <div className="wallet-content">
-                    <p>
-                        Address: {shortenAddress(account)}{' '}
-                        <button onClick={copyAddressToClipboard} className="copy-btn">
-                            [Copy Full Address]
-                        </button>
-                    </p>
-                    <div id="nookieImages">
-                        {inscriptions.length === 0 ? (
-                            <p>No valid Nookis found.</p>
-                        ) : (
-                            inscriptions.map(id => (
-                                <img
-                                    key={id}
-                                    src={`https://ordinals.com/content/${id}`}
-                                    alt="Nooki"
-                                    style={{ width: '50px', height: '50px', margin: '5px', cursor: 'pointer' }}
-                                    onClick={() => handleSelectNooki(id)}
-                                />
-                            ))
-                        )}
+            <div className="content">
+                {deployedNookis.map((nooki, index) => (
+                    <div key={index} style={{ position: 'absolute', top: nooki.position.y, left: nooki.position.x }}>
+                        {/* Render the nooki sprite here */}
                     </div>
-                    {selectedNooki && (
-                        <div>
-                            <p>Selected Nooki ID: {selectedNooki}</p>
-                            <button onClick={handleDeployNooki}>Deploy</button>
-                        </div>
-                    )}
+                ))}
+            </div>
+
+            <div className="nooki-forest-wrapper">
+                <div className="nooki-forest">
+                    <div ref={gameContainerRef} id="game-container" className="canvas-container"></div>
+                    {!isDeployed && <h1 className="header-text">Welcome to Nooki Forest</h1>} 
                 </div>
             </div>
-        )}
-    </div>
+        </div>
     );
 };
 

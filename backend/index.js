@@ -20,6 +20,8 @@ const io = socketIo(server, {
   }
 });
 
+
+
 // Use CORS to allow requests from your frontend
 app.use(cors({ origin: 'http://localhost:3000' }));
 
